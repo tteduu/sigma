@@ -1,0 +1,192 @@
+title: Potentially Suspicious Compression Tool Parameters
+id: ae88b4e4-d999-400c-9ff3-0779773ad717
+status: test
+description: An adversary may compress data (e.g., sensitive documents) that is collected prior to exfiltration in order to make it portable and minimize the amount of data sent over the network, the below is a collection for sigma rules  related to archive collection.
+references:
+    - https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1560/T1560.md
+    - https://thedfirreport.com/2022/09/26/bumblebee-round-two/
+    - https://www.trellix.com/en-sg/about/newsroom/stories/threat-labs/lockergoga-ransomware-family-used-in-targeted-attacks.html
+    - https://redacted.com/blog/bianlian-ransomware-gang-gives-it-a-go/
+    - https://www.microsoft.com/security/blog/2022/09/07/profiling-dev-0270-phosphorus-ransomware-operations/
+    - https://eqllib.readthedocs.io/en/latest/analytics/1ec33c93-3d0b-4a28-8014-dbdaae5c60ae.html
+    - https://labs.sentinelone.com/the-anatomy-of-an-apt-attack-and-cobaltstrike-beacons-encoded-configuration/
+    - https://ss64.com/bash/rar.html
+    - https://www.crowdstrike.com/blog/overwatch-exposes-aquatic-panda-in-possession-of-log-4-shell-exploit-tools/
+    - https://twitter.com/cyb3rops/status/1460978167628406785
+    - https://github.com/redcanaryco/atomic-red-team/blob/f339e7da7d05f6057fdfcdd3742bfcf365fee2a9/atomics/T1560.001/T1560.001.md
+    - https://www.documentcloud.org/documents/5743766-Global-Threat-Report-2019.html
+    - https://twitter.com/vxunderground/status/1423336151860002816?s=20
+    - https://www.virustotal.com/gui/file/03e9b8c2e86d6db450e5eceec057d7e369ee2389b9daecaf06331a95410aa5f8/detection
+    - https://twitter.com/SBousseaden/status/1184067445612535811
+author: Timur Zinniatullin, oscd.community, Nasreddine Bencherchali(3), frack113, Timur Zinniatullin, E.M. Anhaus, oscd.community, Florian Roth(4), Tigzy, Max Altgelt, Tobias Michalski, Samir Bousseaden
+date: 2023/12/10
+tags:
+    - attack.exfiltration
+    - attack.t1560
+    - attack.collection
+    - attack.t1560.001
+    - attack.lateral_movement
+    - attack.credential_access
+    - attack.g0128
+    - attack.t1003.001
+    - detection.emerging_threats
+      #- attack.d0017
+      #- attack.d0009
+logsource:
+    product: windows
+    category: process_creation
+    definition:
+        - 'Requirements: windows Process logging must be enabled and process command line'
+detection:
+    # Note: 7Zip Compressing Dump Files
+    selection_7z_img:
+        - Image|endswith:
+              - '\7z.exe'
+              - '\7zr.exe'
+              - '\7za.exe'
+        - OriginalFileName:
+              - '7z.exe'
+              - '7za.exe'
+    selection_7z_extension:
+        CommandLine|contains:
+            - '.dmp'
+            - '.dump'
+            - '.hdmp'
+    # Note: Compress/uncompress Data and Lock With Password for Exfiltration With 7-ZIP
+    selection_withpassword_7z_img:
+        - Image|endswith:
+              - '\7z.exe'
+              - '\7zr.exe'
+              - '\7za.exe'
+        - OriginalFileName:
+              - '7z.exe'
+              - '7za.exe'
+    selection_withpassword_7z_password:
+        CommandLine|contains: ' -p'
+    selection_withpassword_7z_action:
+        CommandLine|contains:
+            - ' a '
+            - ' u '
+    selection_extract_7z_password:
+        CommandLine|contains|all:
+            - ' -p'
+            - ' x '
+            - ' -o'
+    # Note: Winrar compressing with password 
+    selection_winrar_img:
+        - Image|endswith:
+            - '\rar.exe'
+            - '\winrar.exe'
+    selection_winrar_password:
+        CommandLine|contains: ' -hp'
+    selection_winrarother:
+        CommandLine|contains:
+            - ' -m'
+            - ' a '
+    # Note: Winrar Compressing Dump Files
+    selection_rr_img:
+        - Image|endswith:
+            - '\rar.exe'
+            - '\winrar.exe'
+    selection_rr_extension:
+        CommandLine|contains:
+            - '.dmp'
+            - '.dump'
+            - '.hdmp'
+    # Note: Winrar/winzip/7zip Execution in Non-Standard Folder
+    selection_main:
+        - Image|endswith:
+            - '\rar.exe'
+            - '\winrar.exe'
+            - '\zip.exe'
+            - 'winzip.exe'
+            - '\7z.exe'
+            - '\7zr.exe'
+            - '\7za.exe'
+    # Note: Compress Data and Lock With Password for Exfiltration With WINZIP
+    selection_winzip:
+        CommandLine|contains:
+            - 'winzip.exe'
+            - 'winzip64.exe'
+    selection_winzip_password:
+        CommandLine|contains: '-s"'
+    selection_winzip_other:
+        CommandLine|contains:
+            - ' -min '
+            - ' -a '
+    # Note: Compress Data using tar        
+    selection_tar_img:
+        - Description|contains: 'tar'
+        - Image|endswith:
+              - '\tar.exe'
+        - OriginalFileName:
+              - 'tar.exe'
+    selection_tar_extension:
+        CommandLine|contains:
+            - 'c'
+            - 'v'
+            - 'z'
+            - 'f'
+    # Note: APT31 Judgement Panda Activity
+    selection_ldifde:
+        CommandLine|contains|all:
+            - 'ldifde'
+            - '-f -n'
+            - 'eprod.ldf'
+    selection_lateral_movement:
+        CommandLine|contains|all:
+            - 'copy \\\\'
+            - 'c$'
+        CommandLine|contains:
+            - '\aaaa\procdump64.exe'
+            - '\aaaa\netsess.exe'
+            - '\aaaa\7za.exe'
+            - '\c$\aaaa\'
+    # Note: Conti NTDS Exfiltration Command
+    selection_conti:
+        CommandLine|contains|all:
+            - '7za.exe'
+            - '\\C$\\temp\\log.zip'
+    # Note: Potentially Suspicious Compression Tool Parameters
+    selection_1:
+        OriginalFileName:
+            - '7z*.exe'
+            - '*rar.exe'
+            - '*Command*Line*RAR*'
+        CommandLine|contains:
+            - ' -p'
+            - ' -ta'
+            - ' -tb'
+            - ' -sdel'
+            - ' -dw'
+            - ' -hp'
+    filter_main_unrar:
+        # Note: we filter unrar as it has the same description as the other utilities, and we're only interested in compression
+        Image|endswith: '\UnRAR.exe'
+    filter_main_path:
+        Image|contains:
+            - ':\Program Files (x86)\WinRAR\'
+            - ':\Program Files\WinRAR\'
+    filter_optional_temp:
+        # Note: in some occasion installers were seen dropping "rar" in TEMP
+        Image|contains: ':\Windows\Temp\'
+    filter_generic:
+        ParentImage|contains:
+            - ':\Program Files\'
+            - ':\Program Files (x86)\'
+    condition:
+        - (all of selection_7z*) or (all of selection_withpassword*) or (selection_withpassword_7z_img and selection_extract_7z_password) or all of selection_rr* or all of selection_tar* or all of selection_winrar*
+        - (selection_main and not (1 of filter_main*) and not (1 of filter_optional*)) or ((all of selection_winzip*) or (1 of selection_l*)) or selection_conti or (selection_1 and not (1 of filter_generic))
+falsepositives:
+    - Highly likely if archive operations are done via PowerShell.
+    - Legitimate use of 7z with a command line in which ".dmp" or ".dump" appears accidentally
+    - Legitimate use of 7z to compress WER ".dmp" files for troubleshooting
+    - Legitimate activity is expected since compressing files with a password is common.
+    - Legitimate activity is expected since extracting files with a password can be common in some environment.
+    - Some false positives could occur with the admin or guest account. It depends on the scripts being used by the admins in your env. If you experience a lot of FP you could reduce the level to medium
+    - Highly likely if rar is a default archiver in the monitored environment.
+    - Legitimate use of WinRAR with a command line in which ".dmp" or ".dump" appears accidentally
+    - Legitimate use of WinRAR to compress WER ".dmp" files for troubleshooting
+    - Legitimate use of WinRAR in a folder of a software that bundles WinRAR
+level: Medium
+
