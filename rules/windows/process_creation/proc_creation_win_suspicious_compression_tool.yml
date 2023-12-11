@@ -183,7 +183,6 @@ falsepositives:
     - Legitimate use of 7z to compress WER ".dmp" files for troubleshooting
     - Legitimate activity is expected since compressing files with a password is common.
     - Legitimate activity is expected since extracting files with a password can be common in some environment.
-    - Some false positives could occur with the admin or guest account. It depends on the scripts being used by the admins in your env. If you experience a lot of FP you could reduce the level to medium
     - Highly likely if rar is a default archiver in the monitored environment.
     - Legitimate use of WinRAR with a command line in which ".dmp" or ".dump" appears accidentally
     - Legitimate use of WinRAR to compress WER ".dmp" files for troubleshooting
